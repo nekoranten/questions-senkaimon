@@ -1,0 +1,24 @@
+[
+  {
+    "date": "10-13",
+    "characters": [
+      {
+        "name": "Yoruichi Shihouin",
+        "image": "https://example.com/yoruichi.jpg"
+      }
+    ]
+  },
+  {
+    "date": "10-15",
+    "characters": [
+      {
+        "name": "Rukia Kuchiki",
+        "image": "https://example.com/rukia.jpg"
+      },
+      {
+        "name": "Orihime Inoue",
+        "image": "https://example.com/orihime.jpg"
+      }
+    ]
+  }
+]
