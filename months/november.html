@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Kalendarz Listopad</title>
+<style>
+#embedCalendar {
+max-width: 90%;
+font-family: Manrope, sans-serif;
+margin: 0 auto;
+}
+
+#monthSelectWrapper {
+position: relative;
+display: inline-block;
+margin: 0 0 20px 0;
+width: 200px;
+}
+
+#monthSelect {
+padding: 10px 16px;
+font-size: 20px;
+font-family: 'DM Serif Display', serif;
+background-color: #000;
+color: white;
+border-radius: 6px;
+border: 1px solid #333;
+display: block;
+width: 100%;
+appearance: none;
+cursor: pointer;
+}
+
+#monthSelectWrapper::after {
+content: "▼";
+position: absolute;
+right: 10px;
+top: 50%;
+transform: translateY(-50%);
+pointer-events: none;
+color: white;
+font-size: 16px;
+}
+
+#calendarGrid {
+display: grid;
+grid-template-columns: repeat(7, 1fr);
+gap: 0;
+border: 2px solid black;
+box-sizing: border-box;
+}
+
+.day {
+border: 1px solid black;
+display: flex;
+flex-direction: column;
+justify-content: flex-start;
+align-items: flex-start;
+padding: 5px;
+overflow: hidden;
+margin: 0;
+width: 100%;
+height: 100px;
+box-sizing: border-box;
+cursor: default;
+}
+
+.day-number {
+font-weight: 600;
+margin-bottom: 4px;
+font-size: 14px;
+}
+
+.eventTag {
+font-size: 12px;
+padding: 2px 4px;
+border-radius: 4px;
+margin-top: 2px;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+display: block;
+width: 100%;
+box-sizing: border-box;
+text-align: left;
+}
+
+#eventPopup {
+display: none;
+position: fixed;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+background: #fff;
+padding: 20px;
+width: 70%;
+max-width: 600px;
+max-height: 80%;
+overflow-y: auto;
+border-radius: 12px;
+box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+z-index: 100;
+}
+
+#eventPopup h3 {
+margin-top: 0;
+}
+
+#closePopup {
+position: absolute;
+top: 10px;
+right: 15px;
+cursor: pointer;
+font-size: 20px;
+color: #555;
+}
+
+@media(max-width: 768px){
+#calendarGrid {
+grid-template-columns: repeat(3, 1fr);
+}
+
+.day {
+aspect-ratio: 1 / 1;
+height: auto;
+}
+
+#eventPopup {
+width: 90%;
+max-height: 85%;
+}
+
+#monthSelectWrapper {
+width: 100%;
+}
+}
+</style>
+</head>
+<body>
+<div id="embedCalendar">
+  <div id="monthSelectWrapper">
+    <select id="monthSelect"></select>
+  </div>
+  <div id="calendarGrid"></div>
+
+  <div id="eventPopup">
+    <span id="closePopup">&times;</span>
+    <h3 id="popupTitle"></h3>
+    <div id="popupContent"></div>
+  </div>
+</div>
+
+<script>
+const monthSelect = document.getElementById('monthSelect');
+const calendarGrid = document.getElementById('calendarGrid');
+const popup = document.getElementById('eventPopup');
+const popupTitle = document.getElementById('popupTitle');
+const popupContent = document.getElementById('popupContent');
+const closePopupBtn = document.getElementById('closePopup');
+
+const months = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+months.forEach((m,i)=>{
+  const opt = document.createElement('option');
+  opt.value = i+1;
+  opt.textContent = m;
+  monthSelect.appendChild(opt);
+});
+
+// ustaw aktualny miesiąc
+const currentMonth = 11;
+monthSelect.value = currentMonth;
+
+let eventsData = {};
+
+fetch('https://raw.githubusercontent.com/nekoranten/questions-senkaimon/main/months/november.json')
+  .then(res => res.json())
+  .then(data => {
+    eventsData = data;
+    renderCalendar(currentMonth);
+  })
+  .catch(err => console.error('Błąd wczytywania JSON:', err));
+
+function renderCalendar(month){
+  calendarGrid.innerHTML = '';
+  const daysInMonth = 30;
+  for(let d=1; d<=daysInMonth; d++){
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+    dayDiv.innerHTML = `<div class='day-number'>${d}</div>`;
+
+    if(eventsData[month]){
+      const dayEvents = eventsData[month].filter(e => e.day === d);
+      if(dayEvents.length > 0){
+        dayEvents.forEach(evt => {
+          const eDiv = document.createElement('div');
+          eDiv.className = 'eventTag';
+          eDiv.textContent = evt.text;
+          dayDiv.appendChild(eDiv);
+        });
+        dayDiv.style.cursor = 'pointer';
+        dayDiv.addEventListener('click', ()=>openPopup(month,d));
+      }
+    }
+
+    calendarGrid.appendChild(dayDiv);
+  }
+}
+
+function openPopup(month, day){
+  popupTitle.textContent = `Dzień ${day} – ${months[month-1]}`;
+  popupContent.innerHTML = '';
+
+  if(eventsData[month]){
+    const dayEvents = eventsData[month].filter(e => e.day === day);
+    if(dayEvents.length > 0){
+      dayEvents.forEach(evt => {
+        const p = document.createElement('p');
+        p.innerHTML = evt.text;
+        popupContent.appendChild(p);
+        if(evt.images){
+          evt.images.forEach(src=>{
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.maxWidth='100%';
+            img.style.margin='5px 0';
+            popupContent.appendChild(img);
+          });
+        }
+      });
+    } else {
+      popupContent.innerHTML = '<p>Brak wydarzeń</p>';
+    }
+  }
+  popup.style.display='flex';
+}
+
+closePopupBtn.onclick = ()=>{ popup.style.display='none'; };
+window.onclick = e=>{ if(e.target === popup) popup.style.display='none'; };
+
+monthSelect.addEventListener('change', ()=>renderCalendar(parseInt(monthSelect.value)));
+</script>
+</body>
+</html>
